@@ -21,7 +21,7 @@ int max_block_size = 30000;
 int n_ops = 1; //per thread
 int n_threads = 10;
 int timebase = 1; //seconds
-int class = 2;
+dpl_storage_class_t class = DPL_STORAGE_CLASS_STANDARD;
 int send_usermd = 1;
 int maxreads = 100;
 int print_running_stats = 1;
@@ -85,8 +85,8 @@ static void *test_main(void *arg)
       dpl_dict_t *metadata = NULL;
       char *resource_id = NULL;
       dpl_sysmd_t sysmd;
-#define ID_STR_LEN 32
-      char id_str[ID_STR_LEN+1];
+#define PATTERN_LEN 32
+      char pattern[PATTERN_LEN+1];
 
       pthread_testcancel();
 
@@ -106,10 +106,12 @@ static void *test_main(void *arg)
           exit(1);
         }
 
-      rand_str(id_str, ID_STR_LEN);
+      rand_str(pattern, PATTERN_LEN);
       
+      //fprintf(stderr, "pattern=%s\n", pattern);
+
       if (Rflag)
-          gen_data(id_str, block, block_size);
+          gen_data(pattern, block, block_size);
       else if (zflag)
           memset(block, 'z', block_size);
       else
@@ -129,9 +131,34 @@ static void *test_main(void *arg)
       sysmd.canned_acl = DPL_CANNED_ACL_PRIVATE;
       sysmd.storage_class = class;
 
-      ret = dpl_post_id(ctx, bucket, NULL, DPL_FTYPE_REG, metadata, &sysmd, 
-                        block, block_size, NULL, &resource_id);
+      //ret = write(1, block, block_size);
+
+      if (NULL != ctx->backend->post)
+        {
+          ret = dpl_post_id(ctx, bucket, NULL, DPL_FTYPE_REG, metadata, &sysmd, 
+                            block, block_size, NULL, &resource_id);
+        }
+      else
+        {
+          u64 oid;
+          
+          oid = get_oid(oflag, &drbuffer);
+          
+          ret = dpl_gen_id_from_oid(ctx, oid, class, &resource_id);
+          if (DPL_SUCCESS != ret)
+            {
+              fprintf(stderr, "unable to generate oid: %s (%d)\n", dpl_status_str(ret), ret);
+              exit(1);
+            }
+
+          ret = dpl_put_id(ctx, bucket, resource_id, NULL, DPL_FTYPE_REG, metadata, &sysmd, 
+                           block, block_size);
+
+        }
       gettimeofday(&tv2, NULL);
+      
+      if (vflag)
+        fprintf(stderr, "resource_id=%s\n", resource_id);
 
       pthread_mutex_lock(&stats_lock);
       if (0 == ret)
@@ -151,9 +178,6 @@ static void *test_main(void *arg)
       if (NULL != metadata)
         dpl_dict_free(metadata);
       
-      if (NULL != resource_id)
-        free(resource_id);
-
       metadata = NULL;
 
       /* this is a hack to do reads */
@@ -182,10 +206,14 @@ static void *test_main(void *arg)
           ret = dpl_get_id(ctx, bucket, resource_id, NULL, DPL_FTYPE_REG, NULL, &data_buf, &data_size, &metadata);
           gettimeofday(&tv2, NULL);
 
-          if (0 == ret)
+          if (0 == ret && Rflag)
             {
-              if (0 != check_data(id_str, data_buf, data_size))
-                fprintf(stderr, "bad content\n");
+              //ret = write(1, data_buf, data_size);
+              if (0 != check_data(pattern, data_buf, data_size))
+                {
+                  fprintf(stderr, "bad content\n");
+                  exit(1);
+                }
             }
 
           pthread_mutex_lock(&stats_lock);
@@ -611,7 +639,7 @@ int main(int argc, char **argv)
 
   memset(&drbuffer, 0, sizeof(struct drand48_data));
 
-  while ((opt = getopt(argc, argv, "Pt:Rzrb:N:n:vB:oC:S:Ug:p:T:")) != -1)
+  while ((opt = getopt(argc, argv, "Pt:Rzrb:N:n:vB:C:S:Ug:p:T:o")) != -1)
     switch (opt)
       {
       case 'o':

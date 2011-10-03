@@ -16,9 +16,11 @@ DEPENDS = /usr/local/lib/libdroplet.a ../common/libcommon.a
 DROPLETKEYTOOLSSDIR = ../../tools/key
 DROPLETSRWSTOOLSDIR = ../../tools/srws
 
-CFLAGSPROD = $(INCS) -O2 -Wall -Wunused -Werror -Wuninitialized -D_REENTRANT -fPIC
+#OFLAGS = -02
+
+CFLAGSPROD = $(INCS) $(OFLAGS) -Wall -Wunused -Werror -Wuninitialized -D_REENTRANT -fPIC
 CFLAGSDEBUG = $(INCS) -g3 -ggdb3 -Wall -Wunused -Werror -D_REENTRANT -fPIC -DASDK_DEBUG
-CFLAGSVALGRIND = $(INCS) -O2 -fno-inline -Wall -Wunused -Werror -D_REENTRANT -fPIC
+CFLAGSVALGRIND = $(INCS) $(OFLAGS) -fno-inline -Wall -Wunused -Werror -D_REENTRANT -fPIC
 
 LDFLAGSPROD = $(LIBS)
 LDFLAGSDEBUG = $(LIBS)

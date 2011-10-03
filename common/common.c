@@ -13,16 +13,18 @@ void gen_data(char *id, char *buf, int len)
 {
   char *p;
   char *e;
-  int i, id_len;
+  int i, id_len, buffered_len, remain_len;
 
   id_len = strlen(id);
 
   p = id;
-  e = buf + (len/id_len)*id_len;
+  buffered_len = (len/id_len)*id_len;
+  remain_len = len - buffered_len;
+  e = buf + buffered_len;
   for (;buf < e; buf += id_len) {
     memcpy(buf, p, id_len);
   }
-  for (i=0;i < len;i++) {
+  for (i=0;i < remain_len;i++) {
     buf[i] = p[i%id_len];
   }
 }
