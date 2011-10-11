@@ -1,5 +1,6 @@
 
 #include <droplet.h>
+#include <droplet/backend.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <stdlib.h>
