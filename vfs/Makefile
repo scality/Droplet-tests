@@ -31,9 +31,9 @@ CFLAGS=$(CFLAGSDEBUG)
 LDFLAGS=$(LDFLAGSDEBUG)
 
 TESTS = \
-dpl_test_id_CRD
+dpl_test_vfs_MKNOD
 
-DPL_TEST_CRD_OBJS = dpl_test_id_CRD.o
+DPL_TEST_CRD_OBJS = dpl_test_vfs_MKNOD.o
 
 all: prod
 
@@ -55,8 +55,8 @@ valgrind: compile
 
 compile: $(TESTS)
 
-dpl_test_id_CRD: $(DPL_TEST_CRD_OBJS) $(DEPENDS)
-	$(CC) -o dpl_test_id_CRD $(DPL_TEST_CRD_OBJS) $(LDFLAGS)
+dpl_test_vfs_MKNOD: $(DPL_TEST_CRD_OBJS) $(DEPENDS)
+	$(CC) -o dpl_test_vfs_MKNOD $(DPL_TEST_CRD_OBJS) $(LDFLAGS)
 
 install:
 

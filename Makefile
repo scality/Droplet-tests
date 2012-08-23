@@ -1,7 +1,8 @@
 
 DIRS = \
 common \
-id
+id \
+vfs
 
 include Make.vars
 

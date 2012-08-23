@@ -107,12 +107,12 @@ static void *test_main(void *arg)
           exit(1);
         }
 
-      rand_str(pattern, PATTERN_LEN);
+      dpltest_rand_str(pattern, PATTERN_LEN);
       
       //fprintf(stderr, "pattern=%s\n", pattern);
 
       if (Rflag)
-          gen_data(pattern, block, block_size);
+          dpltest_gen_data(pattern, block, block_size);
       else if (zflag)
           memset(block, 'z', block_size);
       else
@@ -143,7 +143,7 @@ static void *test_main(void *arg)
         {
           u64 oid;
           
-          oid = get_oid(oflag, &drbuffer);
+          oid = dpltest_get_oid(oflag, &drbuffer);
           
           ret = dpl_gen_id_from_oid(ctx, oid, class, &resource_id);
           if (DPL_SUCCESS != ret)
@@ -204,13 +204,13 @@ static void *test_main(void *arg)
           data_buf = NULL;
 
           gettimeofday(&tv1, NULL);
-          ret = dpl_get_id(ctx, bucket, resource_id, NULL, DPL_FTYPE_REG, NULL, &data_buf, &data_size, &metadata);
+          ret = dpl_get_id(ctx, bucket, resource_id, NULL, DPL_FTYPE_REG, NULL, &data_buf, &data_size, &metadata, NULL);
           gettimeofday(&tv2, NULL);
 
           if (0 == ret && Rflag)
             {
               //ret = write(1, data_buf, data_size);
-              if (0 != check_data(pattern, data_buf, data_size))
+              if (0 != dpltest_check_data(pattern, data_buf, data_size))
                 {
                   fprintf(stderr, "bad content\n");
                   exit(1);
