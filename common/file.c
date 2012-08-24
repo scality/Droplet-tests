@@ -33,6 +33,14 @@ dpltest_upload_file(dpl_ctx_t *ctx,
   sysmd.mask = DPL_SYSMD_MASK_CANNED_ACL;
   sysmd.canned_acl = canned_acl;
 
+  flags = DPL_VFILE_FLAG_CREAT;
+  //flags |= DPL_VFILE_FLAG_POST;
+  if (!buffered)
+    {
+      flags |= DPL_VFILE_FLAG_ONESHOT;
+      block_size = blob_size;
+    }
+
  retry:
 
   if (retries >= 3)
@@ -44,61 +52,42 @@ dpltest_upload_file(dpl_ctx_t *ctx,
 
   retries++;
 
-  if (!buffered)
+  ret2 = dpl_openwrite(ctx, path, DPL_FTYPE_REG, flags, metadata, &sysmd, blob_size, NULL, &vfile);
+  if (DPL_SUCCESS != ret2)
     {
-      ret2 = dpl_put(ctx, ctx->cur_bucket, path, NULL, DPL_FTYPE_REG, metadata, &sysmd, blob_buf, blob_size);
-      if (DPL_SUCCESS != ret2)
+      if (DPL_ENOENT == ret2)
         {
-          if (DPL_ENOENT == ret2)
-            {
-              ret = DPL_ENOENT;
-              goto end;
-            }
-
-          goto retry;
+          ret = DPL_ENOENT;
         }
+      
+      goto retry;
     }
-  else
+  
+  remain = blob_size;
+  off = 0;
+  while (remain > 0)
     {
-      flags = DPL_VFILE_FLAG_CREAT;
-      //flags |= DPL_VFILE_FLAG_POST;
+      buf_size = MIN(remain, block_size);
       
-      ret2 = dpl_openwrite(ctx, path, DPL_FTYPE_REG, flags, metadata, &sysmd, blob_size, NULL, &vfile);
-      if (DPL_SUCCESS != ret2)
-        {
-          if (DPL_ENOENT == ret2)
-            {
-              ret = DPL_ENOENT;
-            }
-
-          goto retry;
-        }
-      
-      remain = blob_size;
-      off = 0;
-      while (1)
-        {
-          buf_size = MIN(remain, block_size);
-
-          ret = dpl_write(vfile, blob_buf + off, buf_size);
-          if (DPL_SUCCESS != ret)
-            {
-              fprintf(stderr, "write failed\n");
-              goto retry;
-            }
-
-          off += buf_size;
-        }
-      
-      ret = dpl_close(vfile);
+      ret = dpl_write(vfile, blob_buf + off, buf_size);
       if (DPL_SUCCESS != ret)
         {
-          fprintf(stderr, "close failed %s (%d)\n", dpl_status_str(ret), ret);
+          fprintf(stderr, "write failed\n");
           goto retry;
         }
       
-      vfile = NULL;
+      off += buf_size;
+      remain -= buf_size;
     }
+  
+  ret = dpl_close(vfile);
+  if (DPL_SUCCESS != ret)
+    {
+      fprintf(stderr, "close failed %s (%d)\n", dpl_status_str(ret), ret);
+      goto retry;
+    }
+  
+  vfile = NULL;
 
   ret = DPL_SUCCESS;
 
