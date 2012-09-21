@@ -84,7 +84,8 @@ static void *test_main(void *arg)
     {
       struct timeval tv1, tv2;
       dpl_dict_t *metadata = NULL;
-      char *resource_id = NULL;
+      char *id = NULL;
+      uint32_t enterprise_number = 0;
       dpl_sysmd_t sysmd;
 #define PATTERN_LEN 32
       char pattern[PATTERN_LEN+1];
@@ -134,32 +135,13 @@ static void *test_main(void *arg)
 
       //ret = write(1, block, block_size);
 
-      if (NULL != ctx->backend->post)
-        {
-          ret = dpl_post_id(ctx, bucket, NULL, DPL_FTYPE_REG, metadata, &sysmd, 
-                            block, block_size, NULL, &resource_id);
-        }
-      else
-        {
-          u64 oid;
-          
-          oid = dpltest_get_oid(oflag, &drbuffer);
-          
-          ret = dpl_gen_id_from_oid(ctx, oid, class, &resource_id);
-          if (DPL_SUCCESS != ret)
-            {
-              fprintf(stderr, "unable to generate oid: %s (%d)\n", dpl_status_str(ret), ret);
-              exit(1);
-            }
+      ret = dpl_post_id(ctx, bucket, NULL, DPL_FTYPE_REG, metadata, &sysmd, 
+                        block, block_size, NULL, &id, &enterprise_number);
 
-          ret = dpl_put_id(ctx, bucket, resource_id, NULL, DPL_FTYPE_REG, metadata, &sysmd, 
-                           block, block_size);
-
-        }
       gettimeofday(&tv2, NULL);
       
       if (vflag)
-        fprintf(stderr, "resource_id=%s\n", resource_id);
+        fprintf(stderr, "id=%s\n", id);
 
       pthread_mutex_lock(&stats_lock);
       if (0 == ret)
@@ -204,7 +186,7 @@ static void *test_main(void *arg)
           data_buf = NULL;
 
           gettimeofday(&tv1, NULL);
-          ret = dpl_get_id(ctx, bucket, resource_id, NULL, DPL_FTYPE_REG, NULL, &data_buf, &data_size, &metadata, NULL);
+          ret = dpl_get_id(ctx, bucket, id, enterprise_number, NULL, DPL_FTYPE_REG, NULL, &data_buf, &data_size, &metadata, NULL);
           gettimeofday(&tv2, NULL);
 
           if (0 == ret && Rflag)
@@ -239,7 +221,7 @@ static void *test_main(void *arg)
         }
 
       gettimeofday(&tv1, NULL);
-      ret = dpl_delete_id(ctx, bucket, resource_id, NULL);
+      ret = dpl_delete_id(ctx, bucket, id, enterprise_number, NULL);
       gettimeofday(&tv2, NULL);
 
       pthread_mutex_lock(&stats_lock);
@@ -257,7 +239,7 @@ static void *test_main(void *arg)
       pthread_mutex_unlock(&stats_lock);
 
       free(block);
-      free(resource_id);
+      free(id);
     }
 
   if (vflag)
