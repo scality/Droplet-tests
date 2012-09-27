@@ -84,8 +84,6 @@ static void *test_main(void *arg)
     {
       struct timeval tv1, tv2;
       dpl_dict_t *metadata = NULL;
-      char *id = NULL;
-      uint32_t enterprise_number = 0;
       dpl_sysmd_t sysmd;
 #define PATTERN_LEN 32
       char pattern[PATTERN_LEN+1];
@@ -129,19 +127,15 @@ static void *test_main(void *arg)
 
       gettimeofday(&tv1, NULL);
 
-      sysmd.mask = DPL_SYSMD_MASK_CANNED_ACL | DPL_SYSMD_MASK_STORAGE_CLASS;
-      sysmd.canned_acl = DPL_CANNED_ACL_PRIVATE;
-      sysmd.storage_class = class;
-
       //ret = write(1, block, block_size);
 
-      ret = dpl_post_id(ctx, bucket, NULL, DPL_FTYPE_REG, metadata, &sysmd, 
-                        block, block_size, NULL, &id, &enterprise_number);
+      ret = dpl_post_id(ctx, bucket, NULL, NULL, DPL_FTYPE_REG, metadata, NULL, 
+                        block, block_size, NULL, &sysmd);
 
       gettimeofday(&tv2, NULL);
       
       if (vflag)
-        fprintf(stderr, "id=%s\n", id);
+        fprintf(stderr, "id=%s\n", sysmd.id);
 
       pthread_mutex_lock(&stats_lock);
       if (0 == ret)
@@ -186,7 +180,7 @@ static void *test_main(void *arg)
           data_buf = NULL;
 
           gettimeofday(&tv1, NULL);
-          ret = dpl_get_id(ctx, bucket, id, enterprise_number, NULL, DPL_FTYPE_REG, NULL, &data_buf, &data_size, &metadata, NULL);
+          ret = dpl_get_id(ctx, bucket, sysmd.id, sysmd.enterprise_number, NULL, NULL, DPL_FTYPE_REG, NULL, NULL, &data_buf, &data_size, &metadata, NULL);
           gettimeofday(&tv2, NULL);
 
           if (0 == ret && Rflag)
@@ -221,7 +215,7 @@ static void *test_main(void *arg)
         }
 
       gettimeofday(&tv1, NULL);
-      ret = dpl_delete_id(ctx, bucket, id, enterprise_number, NULL);
+      ret = dpl_delete_id(ctx, bucket, sysmd.id, sysmd.enterprise_number, NULL, NULL, NULL);
       gettimeofday(&tv2, NULL);
 
       pthread_mutex_lock(&stats_lock);
@@ -239,7 +233,6 @@ static void *test_main(void *arg)
       pthread_mutex_unlock(&stats_lock);
 
       free(block);
-      free(id);
     }
 
   if (vflag)

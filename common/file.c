@@ -52,7 +52,7 @@ dpltest_upload_file(dpl_ctx_t *ctx,
 
   retries++;
 
-  ret2 = dpl_openwrite(ctx, path, DPL_FTYPE_REG, flags, metadata, &sysmd, blob_size, NULL, &vfile);
+  ret2 = dpl_openwrite(ctx, path, DPL_FTYPE_REG, flags, NULL, metadata, &sysmd, blob_size, NULL, &vfile);
   if (DPL_SUCCESS != ret2)
     {
       if (DPL_ENOENT == ret2)
