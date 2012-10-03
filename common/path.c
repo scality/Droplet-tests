@@ -9,6 +9,7 @@
  */
 
 #include <droplet.h>
+#include <droplet/vfs.h>
 #include "common.h"
 
 dpl_status_t
@@ -27,7 +28,7 @@ dpltest_mkdir_check(dpl_ctx_t *ctx,
         }
       else
         {
-          ret_dpl = dpl_mkdir(ctx, path);
+          ret_dpl = dpl_mkdir(ctx, path, NULL, NULL);
           if (DPL_SUCCESS != ret_dpl && DPL_EEXIST != ret_dpl)
             {
               fprintf(stderr, "dpl_mkdir %s failed: %s (%d)\n", path, dpl_status_str(ret_dpl), ret_dpl);

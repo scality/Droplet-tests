@@ -9,6 +9,7 @@
  */
 
 #include <droplet.h>
+#include <droplet/vfs.h>
 #include <sys/param.h>
 #include "common.h"
 

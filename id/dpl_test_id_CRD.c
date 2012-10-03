@@ -180,7 +180,7 @@ static void *test_main(void *arg)
           data_buf = NULL;
 
           gettimeofday(&tv1, NULL);
-          ret = dpl_get_id(ctx, bucket, sysmd.id, sysmd.enterprise_number, NULL, NULL, DPL_FTYPE_REG, NULL, NULL, &data_buf, &data_size, &metadata, NULL);
+          ret = dpl_get_id(ctx, bucket, sysmd.id, NULL, NULL, DPL_FTYPE_REG, NULL, NULL, &data_buf, &data_size, &metadata, NULL);
           gettimeofday(&tv2, NULL);
 
           if (0 == ret && Rflag)
@@ -215,7 +215,7 @@ static void *test_main(void *arg)
         }
 
       gettimeofday(&tv1, NULL);
-      ret = dpl_delete_id(ctx, bucket, sysmd.id, sysmd.enterprise_number, NULL, NULL, NULL);
+      ret = dpl_delete_id(ctx, bucket, sysmd.id, NULL, NULL, DPL_FTYPE_REG, NULL);
       gettimeofday(&tv2, NULL);
 
       pthread_mutex_lock(&stats_lock);
