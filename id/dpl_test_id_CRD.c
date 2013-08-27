@@ -22,12 +22,13 @@ int max_block_size = 30000;
 int n_ops = 1; //per thread
 int n_threads = 10;
 int timebase = 1; //seconds
-dpl_storage_class_t class = DPL_STORAGE_CLASS_STANDARD;
 int send_usermd = 1;
 int maxreads = 100;
 int print_running_stats = 1;
 int print_gnuplot_stats = 0;
 int seed = 0;
+dpl_storage_class_t storage_class = DPL_STORAGE_CLASS_STANDARD;
+char *custom = NULL;
 
 struct drand48_data drbuffer;
 
@@ -70,7 +71,7 @@ void test_cleanup(void *arg)
 static void *test_main(void *arg)
 {
   tthreadid *threadid = (tthreadid *)arg;
-  int i, ret;
+  int i, ret, ret2;
   int dummy;
   char *block;
   size_t block_size;
@@ -129,8 +130,24 @@ static void *test_main(void *arg)
 
       //ret = write(1, block, block_size);
 
-      ret = dpl_post_id(ctx, bucket, NULL, NULL, DPL_FTYPE_REG, NULL, NULL, metadata, NULL, 
-                        block, block_size, NULL, &sysmd);
+      if (NULL == ctx->backend->post_id)
+        {
+          //emulate returned sysmd
+          ret2 = dpl_gen_random_key(ctx, storage_class, custom, sysmd.id, sizeof (sysmd.id));
+          if (DPL_SUCCESS != ret2)
+            {
+              fprintf(stderr, "problem generating random key\n");
+              exit(1);
+            }
+          
+          ret = dpl_put_id(ctx, NULL, sysmd.id, NULL, DPL_FTYPE_REG, NULL, NULL, metadata, NULL, 
+                           block, block_size);
+        }
+      else
+        {
+          ret = dpl_post_id(ctx, bucket, NULL, NULL, DPL_FTYPE_REG, NULL, NULL, metadata, NULL, 
+                            block, block_size, NULL, &sysmd);
+        }
 
       gettimeofday(&tv2, NULL);
       
@@ -299,7 +316,7 @@ void print_gpstats_put_nolock(void)
   printf("# 1 n_threads class max_block_size seed time n_succ n_fail lat lat_sd ops\n");
   printf("1 ");
   printf("%d ", n_threads);
-  printf("%d ", class);
+  printf("%d ", storage_class);
   printf("%d ", max_block_size);
   printf("%d ", seed);
   printf("%lu ", mainstats.tv2.tv_sec - mainstats.tv1.tv_sec);
@@ -355,7 +372,7 @@ void print_gpstats_get_nolock(void)
   printf("# 2 n_threads class max_block_size seed time n_succ n_fail lat lat_sd ops\n");
   printf("2 ");
   printf("%d ", n_threads);
-  printf("%d ", class);
+  printf("%d ", storage_class);
   printf("%d ", max_block_size);
   printf("%d ", seed);
   printf("%lu ", mainstats.tv2.tv_sec - mainstats.tv1.tv_sec);
@@ -411,7 +428,7 @@ void print_gpstats_del_nolock(void)
   printf("# 3 n_threads class max_block_size seed time n_succ n_fail lat lat_sd ops\n");
   printf("3 ");
   printf("%d ", n_threads);
-  printf("%d ", class);
+  printf("%d ", storage_class);
   printf("%d ", max_block_size);
   printf("%d ", seed);
   printf("%lu ", mainstats.tv2.tv_sec - mainstats.tv1.tv_sec);
@@ -604,7 +621,7 @@ void doit()
 
 void usage()
 {
-  fprintf(stderr, "usage: dpl_test_id_CRD [-P print gnuplot stats] [-g chance of get] [-t timebase][-R (random content)][-z (fill buffer with 'z's)][-r (random size)][-o (random oids)] [-S use seed] [-N n_threads][-n n_ops][-v (vflag)][-B bucket] [-C class of service] [-b size] [-U (do not send usermd)]\n");
+  fprintf(stderr, "usage: dpl_test_id_CRD [-P print gnuplot stats] [-g chance of get] [-t timebase][-R (random content)][-z (fill buffer with 'z's)][-r (random size)][-o (random oids)] [-S use seed] [-N n_threads][-n n_ops][-v (vflag)][-B bucket] [-C class of service [-c custom]] [-b size] [-U (do not send usermd)]\n");
   exit(1);
 }
 
@@ -615,7 +632,7 @@ int main(int argc, char **argv)
 
   memset(&drbuffer, 0, sizeof(struct drand48_data));
 
-  while ((opt = getopt(argc, argv, "Pt:Rzrb:N:n:vB:C:S:Ug:p:T:o")) != -1)
+  while ((opt = getopt(argc, argv, "Pt:Rzrb:N:n:vB:c:C:S:Ug:p:T:o")) != -1)
     switch (opt)
       {
       case 'o':
@@ -657,13 +674,17 @@ int main(int argc, char **argv)
         assert(NULL != bucket);
         break ;
       case 'C':
-        class = dpl_storage_class(optarg);
-        if (-1 == class)
+        storage_class = dpl_storage_class(optarg);
+        if (-1 == storage_class)
           {
             fprintf(stderr, "bad storage class\n");
             exit(1);
           }
         break;
+      case 'c':
+        custom = strdup(optarg);
+        assert(NULL != custom);
+        break ;
       case 'S':
         srand48_r(atoi(optarg), &drbuffer);
         seed = atoi(optarg);
